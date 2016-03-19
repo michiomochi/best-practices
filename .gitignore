@@ -10,4 +10,5 @@ logs
 *.key
 *.pub
 *.pem
+.envrc
 .idea/
