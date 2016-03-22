@@ -2,30 +2,13 @@
   "variables": {
     "aws_access_key":       "{{env `AWS_ACCESS_KEY_ID`}}",
     "aws_secret_key":       "{{env `AWS_SECRET_ACCESS_KEY`}}",
-    "atlas_username":       "{{env `ATLAS_USERNAME`}}",
     "ap_northeast_1_ami":   "ami-936d9d93",
     "name":                 "aws-ubuntu-base",
     "ap_northeast_1_name":  "aws-ap-northeast-1-ubuntu-base",
     "ssh_username":         "ubuntu",
     "scripts_dir":          "scripts/ubuntu",
-    "config_dir":           "config",
+    "itamae_dir":           "../itamae",
     "dns_listen_addr":      "127.0.0.1"
-  },
-  "push": {
-    "name": "{{user `atlas_username`}}/{{user `name`}}",
-    "base_dir": "../../.",
-    "include": [
-      "{{user `scripts_dir`}}/*",
-      "{{user `scripts_dir`}}/upstart/*",
-      "{{user `config_dir`}}/*",
-      "{{user `config_dir`}}/consul/*",
-      "{{user `config_dir`}}/consul_template/*",
-      "{{user `config_dir`}}/consul_template/templates/*",
-      "{{user `config_dir`}}/envconsul/*",
-      "{{user `config_dir`}}/vault/*",
-      "{{user `config_dir`}}/vault/policies/*"
-    ],
-    "vcs": false
   },
   "builders": [
     {
@@ -54,9 +37,7 @@
       "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
         "mkdir -p /ops/{{user `scripts_dir`}}",
-        "chmod a+w /ops/{{user `scripts_dir`}}",
-        "mkdir -p /ops/{{user `config_dir`}}",
-        "chmod a+w /ops/{{user `config_dir`}}"
+        "chmod a+w /ops/{{user `scripts_dir`}}"
       ]
     },
     {
@@ -65,32 +46,35 @@
       "destination": "/ops/{{user `scripts_dir`}}"
     },
     {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
+        "mkdir -p /ops/{{user `itamae_dir`}}",
+        "chmod a+w /ops/{{user `itamae_dir`}}"
+      ]
+    },
+    {
       "type": "file",
-      "source": "{{user `config_dir`}}/.",
-      "destination": "/ops/{{user `config_dir`}}"
+      "source": "{{user `itamae_dir`}}/.",
+      "destination": "/ops/{{user `itamae_dir`}}"
     },
     {
       "type": "shell",
       "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
       "inline": [
-        "sh /ops/{{user `scripts_dir`}}/dependencies.sh",
-        "sh /ops/{{user `scripts_dir`}}/consul.sh {{user `config_dir`}} {{user `scripts_dir`}}",
-        "sh /ops/{{user `scripts_dir`}}/consul_template.sh {{user `config_dir`}} {{user `scripts_dir`}}",
-        "sh /ops/{{user `scripts_dir`}}/envconsul.sh {{user `config_dir`}}",
-        "sh /ops/{{user `scripts_dir`}}/dnsmasq.sh {{user `dns_listen_addr`}}",
+        "apt-add-repository ppa:brightbox/ruby-ng",
+        "apt-get update -y",
+        "apt-get install -y ruby2.2",
+        "gem install itamae",
+        "itamae local /ops/{{user `itamae_dir`}}/roles/isucon.rb"
+      ]
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo {{user `ssh_username`}} | {{ .Vars }} sudo -E -S sh '{{ .Path }}'",
+      "inline": [
         "sh /ops/{{user `scripts_dir`}}/cleanup.sh"
       ]
-    }
-  ],
-  "post-processors": [
-    {
-      "type": "atlas",
-      "only": ["aws-ap-northeast-1-ubuntu-base"],
-      "artifact": "{{user `atlas_username`}}/{{user `ap_northeast_1_name`}}",
-      "artifact_type": "amazon.image",
-      "metadata": {
-        "created_at": "{{timestamp}}"
-      }
     }
   ]
 }
