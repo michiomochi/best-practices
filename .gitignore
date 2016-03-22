@@ -12,3 +12,4 @@ logs
 *.pem
 .envrc
 .idea/
+vagrant/
