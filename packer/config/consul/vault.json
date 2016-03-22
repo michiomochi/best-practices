@@ -1,7 +1,0 @@
-{
-  "service": {
-    "name": "vault",
-    "port": 8200,
-    "tags": ["{{ node_name }}"]
-  }
-}
